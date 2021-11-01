@@ -1,0 +1,98 @@
+# Mastery Project Code
+# Jack Haley, Mustafa Said
+import PCF8591 as ADC
+import RPi.GPIO as GPIO
+import time
+
+Buzzer = 13    # pin11
+
+BtnPin = 15
+
+TRIG = 11
+ECHO = 12
+
+DO = 18
+
+def setup(pin):
+	GPIO.setwarnings(False)
+	
+	ADC.setup(0x48)
+	GPIO.setup(DO, GPIO.IN)
+	
+	GPIO.setmode(GPIO.BOARD)    #ultrasonic ranger setup
+	GPIO.setup(TRIG, GPIO.OUT)
+	GPIO.setup(ECHO, GPIO.IN)
+	
+	global BuzzerPin    # buzzer setup
+	BuzzerPin = pin
+	GPIO.setmode(GPIO.BOARD)       # Numbers GPIOs by physical location
+	GPIO.setup(BuzzerPin, GPIO.OUT)
+	GPIO.output(BuzzerPin, GPIO.HIGH)
+	
+	GPIO.setup(BtnPin, GPIO.IN, pull_up_down=GPIO.PUD_UP) # button setup
+	GPIO.add_event_detect(BtnPin, GPIO.BOTH, callback=detect, bouncetime=200) 
+
+def distance():
+	GPIO.output(TRIG, 0)
+	time.sleep(0.000002)
+
+	GPIO.output(TRIG, 1)
+	time.sleep(0.00001)
+	GPIO.output(TRIG, 0)
+
+	
+	while GPIO.input(ECHO) == 0:
+		a = 0
+	time1 = time.time()
+	while GPIO.input(ECHO) == 1:
+		a = 1
+	time2 = time.time()
+	
+	during = time2 - time1
+	return during * 340 / 2 * 100
+
+def loop():
+	isPressed = False
+	while True:
+		if GPIO.input(BtnPin) == 0 or isPressed:
+			isPressed = True
+			dis = distance()
+			if dis < 35.0:
+				beep(0.5)
+		if isPressed and GPIO.input(BtnPin) == 0:
+			isPressed = False
+			time.sleep(.1)
+
+def on():
+	GPIO.output(BuzzerPin, GPIO.LOW)
+
+def off():
+	GPIO.output(BuzzerPin, GPIO.HIGH)
+
+def beep(x):
+	on()
+	time.sleep(x)
+	off()
+	time.sleep(x)
+
+def enable():
+	time.sleep(.1)
+	return GPIO.input(BtnPin)
+
+def detect(chn):
+	pass
+
+def destroy():
+	GPIO.output(BuzzerPin, GPIO.HIGH)
+	GPIO.cleanup()
+
+if __name__ == "__main__":
+	setup(Buzzer)
+	try:
+		loop()
+	except KeyboardInterrupt:
+		destroy()
+
+
+
+
