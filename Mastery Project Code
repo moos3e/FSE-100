@@ -1,36 +1,45 @@
-# Mastery Project Code
-# Jack Haley, Mustafa Said
+# Mastery Project Final Code
+# Jack Haley, Mustafa Said, Pranshu Dash, Virrajith Mallavarapu
 import PCF8591 as ADC
 import RPi.GPIO as GPIO
 import time
 
 Buzzer = 13    # pin11
+Buzzer2 = 29
 
-BtnPin = 15
+sonicBtn = 15
+photoBtn = 31
 
 TRIG = 11
 ECHO = 12
 
 DO = 18
+GPIO.setmode(GPIO.BOARD)
 
-def setup(pin):
+def setup(pin, pin2):
 	GPIO.setwarnings(False)
 	
 	ADC.setup(0x48)
 	GPIO.setup(DO, GPIO.IN)
 	
-	GPIO.setmode(GPIO.BOARD)    #ultrasonic ranger setup
-	GPIO.setup(TRIG, GPIO.OUT)
+	GPIO.setup(TRIG, GPIO.OUT)     #ultrasonic ranger setup
 	GPIO.setup(ECHO, GPIO.IN)
 	
 	global BuzzerPin    # buzzer setup
 	BuzzerPin = pin
-	GPIO.setmode(GPIO.BOARD)       # Numbers GPIOs by physical location
 	GPIO.setup(BuzzerPin, GPIO.OUT)
 	GPIO.output(BuzzerPin, GPIO.HIGH)
 	
-	GPIO.setup(BtnPin, GPIO.IN, pull_up_down=GPIO.PUD_UP) # button setup
-	GPIO.add_event_detect(BtnPin, GPIO.BOTH, callback=detect, bouncetime=200) 
+	global BuzzerPin2    # buzzer setup
+	BuzzerPin2 = pin2       # Numbers GPIOs by physical location
+	GPIO.setup(BuzzerPin2, GPIO.OUT)
+	GPIO.output(BuzzerPin2, GPIO.HIGH)
+	
+	GPIO.setup(sonicBtn, GPIO.IN, pull_up_down=GPIO.PUD_UP) # button setup
+	GPIO.add_event_detect(sonicBtn, GPIO.BOTH, callback=detect, bouncetime=200)
+	
+	GPIO.setup(photoBtn, GPIO.IN, pull_up_down=GPIO.PUD_UP) # button setup
+	GPIO.add_event_detect(photoBtn, GPIO.BOTH, callback=detect, bouncetime=200)
 
 def distance():
 	GPIO.output(TRIG, 0)
@@ -52,42 +61,60 @@ def distance():
 	return during * 340 / 2 * 100
 
 def loop():
-	isPressed = False
+	sonicPressed = False
+	photoPressed = False
 	while True:
-		if GPIO.input(BtnPin) == 0 or isPressed:
-			isPressed = True
+		if GPIO.input(sonicBtn) == 0 or sonicPressed:
+			sonicPressed = True
 			dis = distance()
 			if dis < 35.0:
-				beep(0.5)
-		if isPressed and GPIO.input(BtnPin) == 0:
-			isPressed = False
+				sonicBeep(0.5)
+		if sonicPressed and GPIO.input(sonicBtn) == 0:
+			sonicPressed = False
+			time.sleep(.1)
+		if GPIO.input(photoBtn) == 0 or photoPressed:
+			photoPressed = True
+			print ('Value: ', ADC.read(0))
+			if(ADC.read(0) < 65):
+				photoBeep(0.5)
+		if photoPressed and GPIO.input(photoBtn) == 0:
+			photoPressed = False
 			time.sleep(.1)
 
-def on():
+def sonicOn():
 	GPIO.output(BuzzerPin, GPIO.LOW)
 
-def off():
+def sonicOff():
 	GPIO.output(BuzzerPin, GPIO.HIGH)
 
-def beep(x):
-	on()
+def sonicBeep(x):
+	sonicOn()
 	time.sleep(x)
-	off()
+	sonicOff()
 	time.sleep(x)
 
-def enable():
-	time.sleep(.1)
-	return GPIO.input(BtnPin)
+def photoBeep(x):
+	photoOn()
+	time.sleep(x)
+	photoOff()
+	time.sleep(x)
+
+def photoOn():
+	GPIO.output(BuzzerPin2, GPIO.LOW)
+
+def photoOff():
+	GPIO.output(BuzzerPin2, GPIO.HIGH)
 
 def detect(chn):
 	pass
 
 def destroy():
 	GPIO.output(BuzzerPin, GPIO.HIGH)
+	GPIO.output(BuzzerPin2, GPIO.HIGH)
 	GPIO.cleanup()
 
 if __name__ == "__main__":
-	setup(Buzzer)
+	setup(Buzzer, Buzzer2)
 	try:
 		loop()
 	except KeyboardInterrupt:
