@@ -1,4 +1,4 @@
-# Mastery Project Final Code
+# Mastery Project Code
 # Jack Haley, Mustafa Said, Pranshu Dash, Virrajith Mallavarapu
 import PCF8591 as ADC
 import RPi.GPIO as GPIO
@@ -36,10 +36,10 @@ def setup(pin, pin2):
 	GPIO.output(BuzzerPin2, GPIO.HIGH)
 	
 	GPIO.setup(sonicBtn, GPIO.IN, pull_up_down=GPIO.PUD_UP) # button setup
-	GPIO.add_event_detect(sonicBtn, GPIO.BOTH, callback=detect, bouncetime=200)
+	GPIO.add_event_detect(sonicBtn, GPIO.BOTH, callback=sdetect, bouncetime=500)
 	
 	GPIO.setup(photoBtn, GPIO.IN, pull_up_down=GPIO.PUD_UP) # button setup
-	GPIO.add_event_detect(photoBtn, GPIO.BOTH, callback=detect, bouncetime=200)
+	GPIO.add_event_detect(photoBtn, GPIO.BOTH, callback=pdetect, bouncetime=500)
 
 def distance():
 	GPIO.output(TRIG, 0)
@@ -60,26 +60,45 @@ def distance():
 	during = time2 - time1
 	return during * 340 / 2 * 100
 
+def uresult(x):
+	global ultratoggle
+	if(x != 0):
+		if(ultratoggle == True):
+			ultratoggle = False
+		else:
+			ultratoggle = True
+	time.sleep(0.5)
+
+def presult(x):
+	global phototoggle
+	if(x != 0):
+		if(phototoggle == True):
+			phototoggle = False
+		else:
+			phototoggle = True
+	time.sleep(0.5)
+
 def loop():
-	sonicPressed = False
-	photoPressed = False
+	global ultratoggle
+	global phototoggle
 	while True:
-		if GPIO.input(sonicBtn) == 0 or sonicPressed:
-			sonicPressed = True
-			dis = distance()
-			if dis < 35.0:
-				sonicBeep(0.5)
-		if sonicPressed and GPIO.input(sonicBtn) == 0:
-			sonicPressed = False
-			time.sleep(.1)
-		if GPIO.input(photoBtn) == 0 or photoPressed:
-			photoPressed = True
-			print ('Value: ', ADC.read(0))
-			if(ADC.read(0) < 65):
-				photoBeep(0.5)
-		if photoPressed and GPIO.input(photoBtn) == 0:
-			photoPressed = False
-			time.sleep(.1)
+		global ultratoggle
+		global phototoggle
+		if(ultratoggle):
+			ultraloop()
+		if(phototoggle):
+			photoloop()
+
+def ultraloop():
+	dis = distance()
+	if dis < 35.0:
+		sonicBeep(0.5)
+	time.sleep(0.5)
+
+def photoloop():
+	print ('Value: ', ADC.read(0))
+	if(ADC.read(0) < 85):
+		photoBeep(0.5)
 
 def sonicOn():
 	GPIO.output(BuzzerPin, GPIO.LOW)
@@ -105,8 +124,11 @@ def photoOn():
 def photoOff():
 	GPIO.output(BuzzerPin2, GPIO.HIGH)
 
-def detect(chn):
-	pass
+def pdetect(chn):
+	presult(GPIO.input(photoBtn))
+
+def sdetect(chn):
+	uresult(GPIO.input(sonicBtn))
 
 def destroy():
 	GPIO.output(BuzzerPin, GPIO.HIGH)
@@ -114,12 +136,10 @@ def destroy():
 	GPIO.cleanup()
 
 if __name__ == "__main__":
+	phototoggle = False
+	ultratoggle = False
 	setup(Buzzer, Buzzer2)
 	try:
 		loop()
 	except KeyboardInterrupt:
 		destroy()
-
-
-
-
