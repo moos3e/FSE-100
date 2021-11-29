@@ -91,7 +91,7 @@ def loop():
 
 def ultraloop():
 	dis = distance()
-	if dis < 35.0:
+	if dis < 65.0:
 		sonicBeep(0.5)
 	time.sleep(0.5)
 
